@@ -32,6 +32,7 @@ def scan_mons():
         with open(full_name, 'r') as f:
             soup = BeautifulSoup(f.read(), 'html.parser')
             mon_name = mon_number = mon_category = None
+            mon_types = set()
 
             # find name
             for big in soup.find_all('big'):
@@ -51,6 +52,28 @@ def scan_mons():
                         if match:
                             mon_number = match.groups(1)[0]
                             break
+
+            # find mon types
+            # TODO handle multiform mons
+            for table in soup.find_all('table', style=True):
+                if 'margin:auto; background:none;' != table.get('style'):
+                    continue
+                for tbody in table.find_all('tbody'):
+                    for tr in tbody.find_all('tr'):
+                        for td in tr.find_all('td'):
+                            for a in td.find_all('a', href=True, title=True):
+                                title = a.get('title')
+                                if title and '(type)' in title:
+                                    span = a.find('span')
+                                    if span:
+                                        b = span.find('b')
+                                        if b:
+                                            content = b.contents[0]
+                                            if not content == 'Unknown':
+                                                mon_types.add(b.contents[0])
+            mon_types = [x for x in mon_types]
+            print(mon_name, mon_types)
+
             
             # find mon category
             for a in soup.find_all('a', href=True, title=True):
@@ -64,7 +87,7 @@ def scan_mons():
                             mon_category = span.contents[0]
                         break
             
-        print(mon_name, mon_number, mon_category)
+        # print(mon_name, mon_number, mon_category, mon_types)
 
     
 
