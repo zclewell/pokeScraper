@@ -31,30 +31,40 @@ def scan_mons():
         full_name = 'data/' + filename
         with open(full_name, 'r') as f:
             soup = BeautifulSoup(f.read(), 'html.parser')
-            data_number = data_category = None
+            mon_name = mon_number = mon_category = None
 
-            #find dex number
+            # find name
+            for big in soup.find_all('big'):
+                big_big = big.find('big')
+                if big_big:
+                    big_big_b = big_big.find('b')
+                    if big_big_b:
+                        mon_name = big_big_b.contents[0]
+                        break
+
+            # find dex number
             for a in soup.find_all('a', href=True, title=True):
                 if a.get('title') == 'List of Pokémon by National Pokédex number':
                     span = a.find('span')
                     if span:
                         match = re.search('#([0-9\?]+)',span.contents[0])
                         if match:
-                            data_number = match.groups(1)[0]
+                            mon_number = match.groups(1)[0]
                             break
             
-            #find mon category
+            # find mon category
             for a in soup.find_all('a', href=True, title=True):
                 if a.get('title') == 'Pokémon category':
                     span = a.find('span')
                     if span:
                         explain = span.find('span')
                         if explain:
-                            data_category = explain.contents[0]
+                            mon_category = explain.contents[0]
                         else:
-                            data_category = span.contents[0]
+                            mon_category = span.contents[0]
                         break
-        print(data_number, data_category)
+            
+        print(mon_name, mon_number, mon_category)
 
     
 
