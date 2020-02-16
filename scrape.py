@@ -32,6 +32,7 @@ def scan_mons():
         with open(full_name, 'r') as f:
             soup = BeautifulSoup(f.read(), 'html.parser')
             mon_name = mon_number = mon_category = None
+            mon_stats = {}
             mon_types = set()
 
             # find name
@@ -72,9 +73,7 @@ def scan_mons():
                                             if not content == 'Unknown':
                                                 mon_types.add(b.contents[0])
             mon_types = [x for x in mon_types]
-            print(mon_name, mon_types)
 
-            
             # find mon category
             for a in soup.find_all('a', href=True, title=True):
                 if a.get('title') == 'Pokémon category':
@@ -87,9 +86,16 @@ def scan_mons():
                             mon_category = span.contents[0]
                         break
             
-        # print(mon_name, mon_number, mon_category, mon_types)
-
-    
+            # find mon stats
+            for th in soup.find_all('th', style=True):
+                if th and th.get('style') == 'width:85px; padding-left:0.5em; padding-right:0.5em':
+                    a = th.find('a', href=True, title=True)
+                    if a and a.get('title') == 'Statistic':
+                        key = a.find('span').contents[0]
+                        for div in th.find_all('div', style=True):
+                            if div and div.get('style') == 'float:right':
+                                value = div.contents[0]
+                                mon_stats[key] = value
 
 if __name__ == '__main__':
     # get_mons()
