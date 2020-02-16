@@ -31,6 +31,7 @@ def scan_mons():
         full_name = 'data/' + filename
         with open(full_name, 'r') as f:
             soup = BeautifulSoup(f.read(), 'html.parser')
+            data_number = data_category = None
 
             #find dex number
             for a in soup.find_all('a', href=True, title=True):
@@ -47,7 +48,11 @@ def scan_mons():
                 if a.get('title') == 'Pokémon category':
                     span = a.find('span')
                     if span:
-                        data_category = span.contents[0]
+                        explain = span.find('span')
+                        if explain:
+                            data_category = explain.contents[0]
+                        else:
+                            data_category = span.contents[0]
                         break
         print(data_number, data_category)
 
