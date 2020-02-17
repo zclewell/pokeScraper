@@ -7,6 +7,7 @@ import re
 
 def get_mons():
     # remove old 
+    os.system('mkdir data')
     os.system('rm data/*')
 
     driver = webdriver.Chrome('/usr/local/bin/chromedriver')
@@ -34,6 +35,7 @@ def scan_mons():
             mon_name = mon_number = mon_category = None
             mon_stats = {}
             mon_types = set()
+            mon_abilties = set()
 
             # find name
             for big in soup.find_all('big'):
@@ -91,16 +93,23 @@ def scan_mons():
                 if th and th.get('style') == 'width:85px; padding-left:0.5em; padding-right:0.5em':
                     a = th.find('a', href=True, title=True)
                     if a and a.get('title') == 'Statistic':
-                        key = a.find('span').contents[0]
+                        key = a.find('span').contents[0].replace('.','')
                         for div in th.find_all('div', style=True):
                             if div and div.get('style') == 'float:right':
                                 value = div.contents[0]
                                 mon_stats[key] = value
 
+            # find mon abilites
+            for a in soup.find_all('a', href=True, title=True):
+                if a and '(Ability)' in a.get('title'):
+                    span = a.find('span')
+                    if span:
+                        mon_abilties.add(span.contents[0])
+            mon_abilties = [x for x in mon_abilties]
+
+
+
+
 if __name__ == '__main__':
-    # get_mons()
+    get_mons()
     scan_mons()
-
-
-
-
