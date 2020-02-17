@@ -1,9 +1,16 @@
 from selenium import webdriver
 from bs4 import BeautifulSoup
 import pandas as pd
+import pymongo
+import  secrets
 
 import os
 import re
+
+client_str = 'mongodb+srv://%s:%s@cluster0-hf8jb.mongodb.net/test?retryWrites=true&w=majority'.format(secrets.get_username(), secrets.get_password())
+client = pymongo.MongoClient(client_str)
+db = client.monDb
+monCollection = db.monCollection
 
 def get_mons():
     # remove old 
@@ -44,6 +51,7 @@ def scan_mons():
                     big_big_b = big_big.find('b')
                     if big_big_b:
                         mon_name = big_big_b.contents[0]
+                        print(mon_name)
                         break
 
             # find dex number
@@ -107,8 +115,18 @@ def scan_mons():
                         mon_abilties.add(span.contents[0])
             mon_abilties = [x for x in mon_abilties]
 
+            obj = {
+                'name': mon_name,
+                'number': mon_number,
+                'category': mon_category,
+                'abilities': mon_abilties,
+                'types': mon_types,
+                'stats': mon_stats
+            }
 
+            monCollection.insert_one(obj)
 
+    
 
 if __name__ == '__main__':
     get_mons()
