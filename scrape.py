@@ -13,9 +13,7 @@ db = client.monDb
 monCollection = db.monCollection
 
 def get_mons():
-    # remove old 
     os.system('mkdir data')
-    os.system('rm data/*')
 
     driver = webdriver.Chrome('/usr/local/bin/chromedriver')
 
