@@ -7,7 +7,7 @@ import  secrets
 import os
 import re
 
-client_str = 'mongodb+srv://%s:%s@cluster0-hf8jb.mongodb.net/test?retryWrites=true&w=majority'.format(secrets.get_username(), secrets.get_password())
+client_str = 'mongodb+srv://{}:{}@{}/test?retryWrites=true&w=majority'.format(secrets.get_username(), secrets.get_password(), secrets.get_server())
 client = pymongo.MongoClient(client_str)
 db = client.monDb
 monCollection = db.monCollection
@@ -37,10 +37,10 @@ def scan_mons():
         full_name = 'data/' + filename
         with open(full_name, 'r') as f:
             soup = BeautifulSoup(f.read(), 'html.parser')
-            mon_name = mon_number = mon_category = None
+            mon_name = mon_number = mon_category = mon_sprite = None
             mon_stats = {}
             mon_types = set()
-            mon_abilties = set()
+            mon_abilities = set()
 
             # find name
             for big in soup.find_all('big'):
@@ -80,7 +80,7 @@ def scan_mons():
                                             content = b.contents[0]
                                             if not content == 'Unknown':
                                                 mon_types.add(b.contents[0])
-            mon_types = [x for x in mon_types]
+            mon_types = [x for x in mon_types] if mon_types else None
 
             # find mon category
             for a in soup.find_all('a', href=True, title=True):
@@ -109,19 +109,27 @@ def scan_mons():
             for a in soup.find_all('a', href=True, title=True):
                 if a and '(Ability)' in a.get('title'):
                     span = a.find('span')
-                    if span:
-                        mon_abilties.add(span.contents[0])
-            mon_abilties = [x for x in mon_abilties]
+                    if span and len(span.contents):
+                        mon_abilities.add(span.contents[0])
+            mon_abilities = [x for x in mon_abilities] if mon_abilities else None
+
+            # find sprite
+            for img in soup.find_all('img', alt=True, src=True):
+                alt = img.get('alt')
+                src = img.get('src')
+                if mon_name == alt:
+                    mon_sprite = src[2:]
+                    break
 
             obj = {
                 'name': mon_name,
                 'number': mon_number,
                 'category': mon_category,
-                'abilities': mon_abilties,
+                'abilities': mon_abilities,
                 'types': mon_types,
-                'stats': mon_stats
+                'stats': mon_stats,
+                'sprite': mon_sprite
             }
-
             monCollection.insert_one(obj)
 
     
