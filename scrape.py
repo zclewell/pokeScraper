@@ -10,7 +10,7 @@ import re
 client_str = 'mongodb+srv://{}:{}@{}/test?retryWrites=true&w=majority'.format(secrets.get_username(), secrets.get_password(), secrets.get_server())
 client = pymongo.MongoClient(client_str)
 db = client.monDb
-monCollection = db.monCollection
+monCollection = db.monCollectionDev
 
 def get_mons():
     os.system('mkdir data')
@@ -33,11 +33,13 @@ def get_mons():
                 f.writelines(driver.page_source)
 
 def scan_mons():
+    sprite_set = set()
+    orphans = []
     for filename in os.listdir('data'):
         full_name = 'data/' + filename
         with open(full_name, 'r') as f:
             soup = BeautifulSoup(f.read(), 'html.parser')
-            mon_name = mon_number = mon_category = mon_sprite = None
+            mon_name = mon_number = mon_category = mon_image = mon_sprite = None
             mon_stats = {}
             mon_types = set()
             mon_abilities = set()
@@ -49,7 +51,6 @@ def scan_mons():
                     big_big_b = big_big.find('b')
                     if big_big_b:
                         mon_name = big_big_b.contents[0]
-                        print(mon_name)
                         break
 
             # find dex number
@@ -103,7 +104,7 @@ def scan_mons():
                         for div in th.find_all('div', style=True):
                             if div and div.get('style') == 'float:right':
                                 value = div.contents[0]
-                                mon_stats[key] = value
+                                mon_stats[key] = int(value)
 
             # find mon abilites
             for a in soup.find_all('a', href=True, title=True):
@@ -113,26 +114,61 @@ def scan_mons():
                         mon_abilities.add(span.contents[0])
             mon_abilities = [x for x in mon_abilities] if mon_abilities else None
 
-            # find sprite
+            # find image
             for img in soup.find_all('img', alt=True, src=True):
                 alt = img.get('alt')
                 src = img.get('src')
                 if mon_name == alt:
-                    mon_sprite = src[2:]
+                    mon_image = src[2:] # get rid of the leading slashes
                     break
+            # find sprite 
+            for img in soup.find_all('img', alt=True, src=True, width=True, height=True):
+                src = img.get('src')
+                width = img.get('width')
+                height = img.get('height')
+                if width == height == '40' or width == height == '68' or width == height == '52':
+                    sprite_set.add(src[2:])
+            for sprite in sprite_set:
+                if mon_number and (mon_number + 'MS' in sprite or mon_number + 'XYMS' in sprite):
+                    mon_sprite = sprite
+                    sprite_set.remove(sprite)
+                    break;
 
             obj = {
+                '_id': mon_name,
                 'name': mon_name,
                 'number': mon_number,
                 'category': mon_category,
                 'abilities': mon_abilities,
                 'types': mon_types,
                 'stats': mon_stats,
-                'sprite': mon_sprite
+                'image': mon_image,
+                'sprite': mon_sprite,
+                'meta': sum([mon_stats[x] for x in mon_stats])
             }
-            monCollection.insert_one(obj)
 
-    
+            if not mon_sprite:
+                orphans.append(obj)
+                print('{} is an orphan! {} orphans'.format(mon_name, len(orphans)))
+            else:
+                pass
+                print(mon_name)
+                monCollection.insert_one(obj)
+
+    for orphan in orphans:
+        for sprite in sprite_set:
+            number = orphan['number']
+            name = orphan['name']
+            if number + 'MS' in sprite or number + 'XYMS' in sprite:
+                orphan['sprite'] = sprite
+                sprite_set.remove(sprite)
+                monCollection.insert_one(orphan)
+                print('{} is no longer orphan!'.format(name))
+                break
+        if not orphan['sprite']:
+            print('{} is uber orphan :('.format(name))
+            monCollection.insert_one(orphan)
+        
 
 if __name__ == '__main__':
     get_mons()
